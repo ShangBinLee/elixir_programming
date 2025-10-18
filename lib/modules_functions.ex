@@ -10,6 +10,7 @@ defmodule ModulesFunctions do
 
     @doc """
     # 練習問題：ModulesAndFunctions-4
+
     `1`から`n`までの総和を求める。
 
     ## パラメータ
@@ -32,6 +33,7 @@ defmodule ModulesFunctions do
 
     @doc """
     # 練習問題：ModulesAndFunctions-5
+
     自然数`x`、`y`の最大公約数を求める。（ユークリッドの互除法による数式）
 
     ## 例
