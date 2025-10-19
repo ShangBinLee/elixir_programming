@@ -109,4 +109,30 @@ defmodule ListsRecursion do
   # caesarで式1になった場合、式3とも表せる。
   defp circle_if_possible(c) when c <= @a_code_prev, do: @z_code - (@a_code_prev - c)
   defp circle_if_possible(c), do: c
+
+  @doc """
+  # 練習問題：ListsAndRecursion-6
+
+  多次元リストを一次元リストに平坦化する。
+
+  ## 例
+
+      iex> ListsRecursion.flatten([])
+      []
+      iex> ListsRecursion.flatten([[[]], []])
+      []
+      iex> ListsRecursion.flatten([1, [2, 3, [4]], [5, [[[6]]]]])
+      [1, 2, 3, 4, 5, 6]
+      iex> ListsRecursion.flatten([1, 2, [3], [[[4], [5]], 100]])
+      [1, 2, 3, 4, 5, 100]
+
+  """
+  @spec flatten(list()) :: list()
+  def flatten([]), do: []
+  def flatten([head | tail]) when is_list head do
+    flatten(head) ++ flatten(tail)
+  end
+  def flatten([head | tail]) do
+    [head | flatten(tail)]
+  end
 end
