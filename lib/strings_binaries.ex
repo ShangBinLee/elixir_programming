@@ -124,4 +124,39 @@ defmodule StringsBinaries do
     end
     defp _parse([], value), do: [value | []] # 解消、終了
   end
+
+  defmodule Strings do
+    @moduledoc """
+    ダブルクオート文字列（正式な文字列）のモジュール
+    """
+
+    @doc """
+    # 練習問題：StringsAndBinaries-5
+
+    与えられたリストの各要素（文字列）を別々の行で中央揃えして出力する。
+
+    ## パラメータ
+
+      - strs：文字列のリスト
+
+    ## 例
+
+        iex> StringsBinaries.Strings.center(["cat", "zebra", "elephant"])
+        #=>   cat
+        #=>  zebra
+        #=> elephant
+        iex> StringsBinaries.Strings.center(["reality", "unreal", "unity"])
+        #=> reality
+        #=> unreal
+        #=>  unity
+
+    """
+    def center(strs) do
+      max_length = Enum.map(strs, &String.length/1) |> Enum.max()
+      for str <- strs do
+        pad_length = div(max_length + String.length(str), 2) # (max_length - str_length) / 2 + str_length = (max_length + str_length) / 2
+        IO.puts String.pad_leading(str, pad_length)
+      end
+    end
+  end
 end
