@@ -27,17 +27,21 @@ defmodule Sales do
 
       iex> Sales.sales_tax("test/orders_example.txt", [ NC: 0.075, TX: 0.08 ])
       [
-        [id: 123, ship_to: :NC, net_amount: 100.0, total_amount: 107.5],
-        [id: 124, ship_to: :OK, net_amount: 35.5],
-        [id: 125, ship_to: :TX, net_amount: 24.0, total_amount: 25.92],
-        [id: 126, ship_to: :TX, net_amount: 44.8, total_amount: 48.384],
-        [id: 127, ship_to: :NC, net_amount: 25.0, total_amount: 26.875],
-        [id: 128, ship_to: :MA, net_amount: 10.0],
-        [id: 129, ship_to: :CA, net_amount: 102.0],
-        [id: 120, ship_to: :NC, net_amount: 50.0, total_amount: 53.75]
+        %{id: 123, ship_to: :NC, net_amount: 100.0, total_amount: 107.5},
+        %{id: 124, ship_to: :OK, net_amount: 35.5},
+        %{id: 125, ship_to: :TX, net_amount: 24.0, total_amount: 25.92},
+        %{id: 126, ship_to: :TX, net_amount: 44.8, total_amount: 48.384},
+        %{id: 127, ship_to: :NC, net_amount: 25.0, total_amount: 26.875},
+        %{id: 128, ship_to: :MA, net_amount: 10.0},
+        %{id: 129, ship_to: :CA, net_amount: 102.0},
+        %{id: 120, ship_to: :NC, net_amount: 50.0, total_amount: 53.75}
       ]
   """
-  @spec sales_tax(Path.t(), keyword(float())) :: list(keyword(integer() | atom() | float()))
+  @spec sales_tax(Path.t(), keyword(float()))
+  :: list(
+    %{id: integer(), ship_to: atom(), net_amount: float()}
+    | %{id: integer(), ship_to: atom(), net_amount: float(), total_amount: float()}
+  )
   def sales_tax(orders_file_path, tax_rates) do
     orders_file_path
     |> File.stream!(:line)
@@ -52,6 +56,7 @@ defmodule Sales do
     |> String.split(",")
     |> Enum.map(&_parse_order_info/1)
     |> (fn line -> Enum.zip([:id, :ship_to, :net_amount], line) end).() # ヘッダーと連結
+    |> Map.new()
     # to-do：実際にCSVのようにファイルでヘッダー名の記載順番は構わないようにしたい。
   end
 
