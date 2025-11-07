@@ -36,6 +36,17 @@ defmodule Sales do
         %{id: 129, ship_to: :CA, net_amount: 102.0},
         %{id: 120, ship_to: :NC, net_amount: 50.0, total_amount: 53.75}
       ]
+      iex> Sales.sales_tax("test/orders_example_headers_order.txt", [ NC: 0.075, TX: 0.08 ])
+      [
+        %{id: 123, ship_to: :NC, net_amount: 100.0, total_amount: 107.5},
+        %{id: 124, ship_to: :OK, net_amount: 35.5},
+        %{id: 125, ship_to: :TX, net_amount: 24.0, total_amount: 25.92},
+        %{id: 126, ship_to: :TX, net_amount: 44.8, total_amount: 48.384},
+        %{id: 127, ship_to: :NC, net_amount: 25.0, total_amount: 26.875},
+        %{id: 128, ship_to: :MA, net_amount: 10.0},
+        %{id: 129, ship_to: :CA, net_amount: 102.0},
+        %{id: 120, ship_to: :NC, net_amount: 50.0, total_amount: 53.75}
+      ]
   """
   @spec sales_tax(Path.t(), keyword(float()))
   :: list(
@@ -43,31 +54,52 @@ defmodule Sales do
     | %{id: integer(), ship_to: atom(), net_amount: float(), total_amount: float()}
   )
   def sales_tax(orders_file_path, tax_rates) do
-    orders_file_path
+    stream = orders_file_path
     |> File.stream!(:line)
-    |> Stream.drop(1) # ヘッダー行をスキップ
-    |> Stream.map(&to_order/1) # テキストを注文情報に変換
-    |> Orders.apply_tax_rates_to(tax_rates)
+
+    head = stream
+    |> Enum.take(1) # ヘッダー名のリスト抽出
+    |> to_head() # アトムのリストに変換
+
+    stream
+    |> Stream.drop(1) # 注文リスト（文字列）抽出
+    |> Stream.map(&to_order(&1, head)) # 注文リストに変換
+    |> Orders.apply_tax_rates_to(tax_rates) # 税率適用
   end
 
-  def to_order(line) do
+  def to_head([line]) do
     line
     |> String.trim() # 改行文字を除く
     |> String.split(",")
+    |> Enum.map(&_parse_header/1) # アトムのリストに変換
+    |> _valid_head() # 必須カラムが含まれているかを確認
+    |> _head_if_ok() # 異常であればパターンマッチングでエラー
+  end
+
+  defp _parse_header(column_name), do: String.to_atom(column_name)
+
+  defp _valid_head(head) do
+    headers_not_included = [:id, :ship_to, :net_amount] -- head
+
+    case headers_not_included do
+      [] -> {:ok, head}
+      _ -> {:validation_error, headers_not_included}
+    end
+  end
+
+  defp _head_if_ok({:ok, head}), do: head
+
+  def to_order(body_line, head) do
+    body_line
+    |> String.trim() # 改行文字を除く
+    |> String.split(",")
+    |> (fn body_line -> Enum.zip(head, body_line) end).() # ヘッダー名と値を連結
     |> Enum.map(&_parse_order_info/1)
-    |> (fn line -> Enum.zip([:id, :ship_to, :net_amount], line) end).() # ヘッダーと連結
     |> Map.new()
-    # to-do：実際にCSVのようにファイルでヘッダー名の記載順番は構わないようにしたい。
   end
 
-  # ship_toカラムのパース
-  defp _parse_order_info(":" <> ship_to), do: String.to_atom(ship_to)
-  # id(integer)かnet_amount(float)カラムのパース
-  defp _parse_order_info(num_str) do
-    String.contains?(num_str, ".")
-    |> _to_float_integer(num_str)
-  end
-
-  defp _to_float_integer(true, num_str), do: String.to_float(num_str)
-  defp _to_float_integer(false, num_str), do: String.to_integer(num_str)
+  defp _parse_order_info({:ship_to, ":" <> ship_to}), do: {:ship_to, String.to_atom(ship_to)}
+  defp _parse_order_info({:id, num_str}), do: {:id, String.to_integer(num_str)}
+  defp _parse_order_info({:net_amount, num_str}), do: {:net_amount, String.to_float(num_str)}
+  defp _parse_order_info(order_info), do: order_info
 end
