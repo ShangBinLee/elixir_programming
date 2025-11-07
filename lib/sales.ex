@@ -47,6 +47,13 @@ defmodule Sales do
         %{id: 129, ship_to: :CA, net_amount: 102.0},
         %{id: 120, ship_to: :NC, net_amount: 50.0, total_amount: 53.75}
       ]
+      iex> Sales.sales_tax("test/orders_example_additional.txt", [ NC: 0.075, TX: 0.08 ])
+      [
+        %{id: 123, ship_to: :NC, net_amount: 100.0, total_amount: 107.5, delivery_date: "2025-10-28T18:25:34.609Z"},
+        %{id: 124, ship_to: :OK, net_amount: 35.5, delivery_date: "2024-12-25T12:25:34.609Z"},
+        %{id: 125, ship_to: :TX, net_amount: 24.0, total_amount: 25.92, delivery_date: "2025-03-17T02:21:34.609Z"},
+        %{id: 126, ship_to: :TX, net_amount: 44.8, total_amount: 48.384, delivery_date: "2026-01-01T00:00:00.609Z"}
+      ]
   """
   @spec sales_tax(Path.t(), keyword(float()))
   :: list(
