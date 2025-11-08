@@ -65,22 +65,22 @@ defmodule Sales do
     |> File.stream!(:line)
 
     head = stream
-    |> Enum.take(1) # ヘッダー名のリスト抽出
-    |> to_head() # アトムのリストに変換
+    |> Enum.at(0) # ヘッダー名の列挙文字列を抽出
+    |> parse_head() # アトムのリストに変換（バリデーション処理付）
 
     stream
-    |> Stream.drop(1) # 注文リスト（文字列）抽出
-    |> Stream.map(&to_order(&1, head)) # 注文リストに変換
+    |> Stream.drop(1) # 注文（文字列）リスト抽出
+    |> Stream.map(&parse_order(&1, head)) # 注文リストに変換
     |> Orders.apply_tax_rates_to(tax_rates) # 税率適用
   end
 
-  def to_head([line]) do
+  def parse_head(line) do
     line
     |> String.trim() # 改行文字を除く
     |> String.split(",")
     |> Enum.map(&_parse_header/1) # アトムのリストに変換
     |> _valid_head() # 必須カラムが含まれているかを確認
-    |> _head_if_ok() # 異常であればパターンマッチングでエラー
+    |> _get_head_if_ok() # 異常であればパターンマッチングでエラー
   end
 
   defp _parse_header(column_name), do: String.to_atom(column_name)
@@ -94,14 +94,14 @@ defmodule Sales do
     end
   end
 
-  defp _head_if_ok({:ok, head}), do: head
+  defp _get_head_if_ok({:ok, head}), do: head
 
-  def to_order(body_line, head) do
-    body_line
+  def parse_order(order_str, head) do
+    order_str
     |> String.trim() # 改行文字を除く
     |> String.split(",")
-    |> (fn body_line -> Enum.zip(head, body_line) end).() # ヘッダー名と値を連結
-    |> Enum.map(&_parse_order_info/1)
+    |> (fn order_info_list -> Enum.zip(head, order_info_list) end).() # ヘッダー名と対象フィールドの値を連結
+    |> Enum.map(&_parse_order_info/1) # フィールドごとにパース
     |> Map.new()
   end
 
