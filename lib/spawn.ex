@@ -4,6 +4,7 @@ defmodule Spawn do
     receive do
       {sender, msg} ->
         send sender, {:ok, "初めまして！#{msg}さん。"}
+        greet()
     end
   end
 end
@@ -19,7 +20,7 @@ receive do
 end
 
 # 2回目の送信（待ち続ける）
-send pid, {self(), "滝口"}
+send pid, {self(), "瀧口"}
 
 receive do
   {:ok, msg} ->
