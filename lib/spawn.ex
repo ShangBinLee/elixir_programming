@@ -24,4 +24,6 @@ send pid, {self(), "滝口"}
 receive do
   {:ok, msg} ->
     IO.puts msg
+  after 500 -> # 500ミリ秒でタイムアウト
+    IO.puts "お迎えを忘れたみたいです。"
 end
