@@ -112,4 +112,49 @@ defmodule WorkingWithMultipleProcesses do
       end
     end
   end
+
+  defmodule Problem5 do
+    @moduledoc """
+    # 練習問題：WorkingWithMultipleProcesses-5
+
+    前二つの練習問題を、spawn_linkからspawn_monitorに変えて繰り返してみよう。
+    """
+    import :timer, only: [sleep: 1]
+
+    @doc """
+    親プロセス。練習問題：WorkingWithMultipleProcesses-3のspawn_monitor版
+    """
+    def run_1() do
+      spawn_monitor(WorkingWithMultipleProcesses.Problem3, :child_process, [self(), 0])
+      sleep 500
+
+      receive do
+        msg ->
+          IO.puts "メッセージ受信：#{inspect msg}"
+      end
+
+      receive do
+        msg ->
+          IO.puts "メッセージ受信：#{inspect msg}"
+      end
+    end
+
+    @doc """
+    親プロセス。練習問題：WorkingWithMultipleProcesses-4のspawn_monitor版
+    """
+    def run_2() do
+      spawn_monitor(WorkingWithMultipleProcesses.Problem4, :child_process, [self()])
+      sleep 500
+
+      receive do
+        msg ->
+          IO.puts "メッセージ受信：#{inspect msg}"
+      end
+
+      receive do
+        msg ->
+          IO.puts "メッセージ受信：#{inspect msg}"
+      end
+    end
+  end
 end
