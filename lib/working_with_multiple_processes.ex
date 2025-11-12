@@ -83,4 +83,33 @@ defmodule WorkingWithMultipleProcesses do
       end
     end
   end
+
+  defmodule Problem4 do
+    @moduledoc """
+    # 練習問題：WorkingWithMultipleProcesses-4
+
+    同じように、しかい子プロセスが終了の代わりに例外を発生するようにしてみよう。\s\s
+    何か出力に違いはあるだろうか。
+    """
+    import :timer, only: [sleep: 1]
+
+    def child_process(send_to) do
+      send send_to, "子プロセスからのメッセージです。"
+      raise "子プロセス異常終了！"
+    end
+
+
+    @doc """
+    親プロセス。
+    """
+    def run() do
+      spawn_link(WorkingWithMultipleProcesses.Problem4, :child_process, [self()])
+      sleep 500
+
+      receive do
+        msg ->
+          "メッセージ受信：#{msg}"
+      end
+    end
+  end
 end
