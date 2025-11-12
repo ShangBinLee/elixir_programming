@@ -7,10 +7,11 @@ defmodule Link do
   end
 
   def run do
+    Process.flag(:trap_exit, true)
     spawn_link(Link, :sad_function, [])
     receive do
       msg ->
-        IO.puts "メッセージ受信：#{msg}"
+        IO.puts "メッセージ受信：#{inspect msg}"
       after 1000 ->
         IO.puts "何もなかった！"
     end
