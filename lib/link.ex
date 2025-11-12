@@ -7,7 +7,7 @@ defmodule Link do
   end
 
   def run do
-    spawn(Link, :sad_function, [])
+    spawn_link(Link, :sad_function, [])
     receive do
       msg ->
         IO.puts "メッセージ受信：#{msg}"
