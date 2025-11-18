@@ -84,3 +84,80 @@ defmodule Client do
     end
   end
 end
+
+defmodule Ticker3 do
+  @moduledoc """
+  # 練習問題：Nodes-3
+
+  登録されたクライアントが順々に通知を受け取るようにコードを変更しよう。\s\s
+  つまり、最初の時報が最初に登録されたクライアントに届き、次の時報が\s\s
+  次のクライアントに届き、⋯。となるようにする。最後のクライアントへ送った後は、\s\s
+  また最初に戻る。回答のコードでも、クライアントをいつでも追加できなければならない。
+
+  """
+
+  @interval 2000 # 2秒
+  @name :ticker3
+  def start do
+    pid = spawn(__MODULE__, :generator, [{[], []}])
+    :global.register_name(@name, pid)
+  end
+
+  def register(client_pid) do
+    send :global.whereis_name(@name), {:register, client_pid}
+  end
+
+  @doc """
+  循環通知サーバープロセス
+
+  ## イベント
+
+    - {:register, pid}：クライアントを通知キューの最後に追加
+    - after @interval：通知を次の対象クライアントに送る
+
+  """
+  def generator(queue) do
+    receive do
+      {:register, pid} ->
+        IO.puts "クライアント登録：#{inspect pid}"
+
+        queue
+        |> _add_queue(pid)
+        |> generator()
+
+      after @interval ->
+        IO.puts "tick"
+
+        case _next_queue(queue) do
+          # キューを一歩進める
+          {:none, queue_next} ->
+            # クライアントが一個も登録されてない
+            generator(queue_next)
+          {next_client, queue_next} ->
+            # クライアントが一個以上登録されている
+            send next_client, {:tick}
+            generator(queue_next)
+        end
+    end
+  end
+
+  defp _add_queue({prev, next}, el), do: {prev, next ++ [el]}
+
+  defp _forward_queue({_prev = [], _next = []}) do
+    {[], []}
+  end
+  defp _forward_queue({prev, _next = [next_el]}) do
+    {[], Enum.reverse([next_el | prev])}
+  end
+  defp _forward_queue({prev, _next = [head | tail]}) do
+    {[head | prev], tail}
+  end
+
+  defp _get_queue({_prev, _next = []}), do: :none
+  defp _get_queue({_prev, _next = [head | _tail]}), do: head
+
+  defp _next_queue(queue) do
+    queue
+    |> (&{_get_queue(&1), _forward_queue(&1)}).()
+  end
+end
