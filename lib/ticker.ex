@@ -58,10 +58,14 @@ defmodule Client do
   クライアントを起動し、\s\s
   グローバルな名前で登録されている通知サーバーに登録する。
 
+  ## パラメータ
+
+    - module：通知サーバーのモジュール
+      - インターフェースとして`register/1`関数が必要
   """
-  def start do
+  def start(module) do
     pid = spawn(__MODULE__, :receiver, [])
-    Ticker.register(pid)
+    module.register(pid)
   end
 
   @doc """
