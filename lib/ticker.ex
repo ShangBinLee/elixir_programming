@@ -161,3 +161,70 @@ defmodule Ticker3 do
     |> (&{_get_queue(&1), _forward_queue(&1)}).()
   end
 end
+
+defmodule ClientRing do
+  @moduledoc """
+  # 練習問題：Nodes-4
+  この章で紹介した通知プロセスは、登録されたクライアントにイベントを送る\s\s
+  中央サーバーだった。これを、クライアントのリング（輪）として再実装しよう。\s\s
+  クライアントは通知をリング上の次のクライアントに送る。その2秒後に、先ほど\s\s
+  通知を受け取ったクライアントは次のクライアントに通知を送る。\s\s
+  リングにクライアントを加える方法について考えるときは、新しいプロセスを加える\s\s
+  時と同じように、クライアントの受信ループがタイムアウトした場合の取り扱いについても\s\s
+  留意しよう。どういうことかというと、「誰がリングの更新の責任を負うのか？」という問題だ。
+
+  """
+
+  @interval 2000 # 2秒
+  @tail_name :client_ring_tail
+  def start do
+    pid = spawn(__MODULE__, :circulator, [nil, false])
+
+    tail = case name = :global.whereis_name(@tail_name) do
+      :undefined ->
+        # 初のプロセスなので自分を設定
+        pid
+      _ ->
+        # 既存の末尾
+        name
+    end
+
+    send tail, {:register, pid}
+  end
+
+  def circulator(next, will_tick) do
+    receive do
+      {:register, pid} ->
+        case is_nil(next) do
+          true ->
+            # 新規プロセス（新しい末尾）
+            :global.re_register_name(@tail_name, self())
+          false ->
+            # 既存プロセス（既存の末尾）
+            send pid, {:register, next}
+        end
+
+        if pid === self() do
+          # このリングで初のプロセスなのでtick開始
+          send pid, {:tick, self()}
+        end
+
+        # nextを新しい末尾（既存の末尾の場合）
+        # または既存のヘッド（新しい末尾の場合）
+        # に置き換える
+        circulator(pid, will_tick)
+      {:tick, pid} ->
+        IO.puts "#{inspect pid}からの通知メッセージ受信：tick"
+        # 次のタイムアウトではtickする
+        circulator(next, true)
+      after @interval ->
+        case will_tick do
+          true ->
+            send next, {:tick, self()}
+            circulator(next, false)
+          false ->
+            circulator(next, false)
+        end
+    end
+  end
+end
