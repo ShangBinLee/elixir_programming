@@ -175,43 +175,19 @@ defmodule ClientRing do
 
   """
 
+  @doc """
+  新たなクライアントプロセスを起動し、\s\s
+  起動中の登録サーバーを介してクライアントリングに登録する。
+  """
   @interval 2000 # 2秒
-  @tail_name :client_ring_tail
   def start do
-    pid = spawn(__MODULE__, :circulator, [nil, false])
-
-    tail = case name = :global.whereis_name(@tail_name) do
-      :undefined ->
-        # 初のプロセスなので自分を設定
-        pid
-      _ ->
-        # 既存の末尾
-        name
-    end
-
-    send tail, {:register, pid}
+    spawn(__MODULE__, :circulator, [nil, false])
+    |> Register.add_client()
   end
 
   def circulator(next, will_tick) do
     receive do
-      {:register, pid} ->
-        case is_nil(next) do
-          true ->
-            # 新規プロセス（新しい末尾）
-            :global.re_register_name(@tail_name, self())
-          false ->
-            # 既存プロセス（既存の末尾）
-            send pid, {:register, next}
-        end
-
-        if pid === self() do
-          # このリングで初のプロセスなのでtick開始
-          send pid, {:tick, self()}
-        end
-
-        # nextを新しい末尾（既存の末尾の場合）
-        # または既存のヘッド（新しい末尾の場合）
-        # に置き換える
+      {:change_next, pid} ->
         circulator(pid, will_tick)
       {:tick, pid} ->
         IO.puts "#{inspect pid}からの通知メッセージ受信：tick"
@@ -224,6 +200,45 @@ defmodule ClientRing do
             circulator(next, false)
           false ->
             circulator(next, false)
+        end
+    end
+  end
+end
+
+defmodule Register do
+  @moduledoc """
+  既存のクライアントリングに新たなクライアントを登録する登録サーバー
+  """
+
+  @doc """
+  登録サーバーを起動する。グローバルで一個までしか起動できない。
+  """
+  @name :register
+  def start do
+    if :global.whereis_name(@name) !== :undefined do
+      raise RuntimeError, message: "登録サーバーは既に起動中です。"
+    end
+
+    pid = spawn(__MODULE__, :register, [nil, nil])
+    :global.register_name(@name, pid)
+  end
+
+  def add_client(client_pid) do
+    send :global.whereis_name(@name), {:add_client, client_pid}
+  end
+
+  def register(head, tail) do
+    receive do
+      {:add_client, client_pid} ->
+        case head do
+          nil ->
+            send client_pid, {:change_next, client_pid}
+            send client_pid, {:tick, client_pid}
+            register(client_pid, client_pid)
+          _ ->
+            send tail, {:change_next, client_pid}
+            send client_pid, {:change_next, head}
+            register(head, client_pid)
         end
     end
   end
