@@ -16,9 +16,29 @@ defmodule Otp.Stack do
   castを使って実装できる。\s\s
   IExで、値をプッシュしたりポップしたりしてみよう。
 
+  # 練習問題：OTP-Servers-4
+
+  スタックモジュールにAPI（GenServerの呼び出しをラップする関数）を加えよう。
+
   """
 
   use GenServer
+
+  # 外部API
+
+  def start_link(stack) do
+    GenServer.start_link(__MODULE__, stack, name: __MODULE__)
+  end
+
+  def pop() do
+    GenServer.call(__MODULE__, :pop)
+  end
+
+  def push(el) do
+    GenServer.cast(__MODULE__, {:push, el})
+  end
+
+  # GenServerの実装
 
   def init(stack) do
     {:ok, stack}
