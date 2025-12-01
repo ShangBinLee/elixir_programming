@@ -10,6 +10,27 @@ defmodule Use.Tracer do
   end
 
   @doc """
+  マクロ内で呼び出されると、内部表現を引数として受け取って\s\s
+  関数の中身にログ出力処理を追加したものをquoteして返す。
+
+  ## パラメータ
+
+    - name：関数名
+    - args：関数のパラメータ定義
+      - unquote(args)は内部表現を関数のパラメータ名のリストにパースする
+    - content：元々defに渡されたdo..endの部分、関数の中身
+
+  """
+  def quote_do(name, args, content) do
+    quote do
+      IO.puts [blue(), "===> call: #{dump_defn(unquote(name), unquote(args))}", default_color()]
+      result = unquote(content)
+      IO.puts [blue(), "===> result: #{result}", default_color()]
+      result
+    end
+  end
+
+  @doc """
   # 練習問題：LinkingModules-BehavioursAndUse-2
 
   組込み関数の`IO.ANSI`はANSIエスケープシーケンスを表現する関数を定義する。\s\s
@@ -23,17 +44,31 @@ defmodule Use.Tracer do
   モジュールを調査し、それを使って、トレースの出力を色付けしてみよう。\s\s
   文字列のリストを`IO.puts`に渡すと、なぜ動くのだろうか。
 
+  # 練習問題：LinkingModules-BehavioursAndUse-3
+
+  （難問）ガード節のある関数定義をTestモジュールに加えてみよう。\s\s
+  トレースがうまくいかないことがわかるだろう。\s\s
+  ・うまくいかない理由を見つけよう。\s\s
+  ・修正方法があるか考えよう。
+
   """
+  defmacro def(
+    {:when, _, _args = [definition = {name, _, args}, guard]},
+    do: content
+  ) do
+    # ガード節対応
+    quote do
+      Kernel.def(unquote(definition) when unquote(guard)) do
+        unquote(quote_do(name, args, content))
+      end
+    end
+  end
+
   defmacro def(definition = {name, _, args}, do: content) do
+    # それ以外の全ケース
     quote do
       Kernel.def(unquote(definition)) do
-        # unquote(args)はdefで定義した関数のパラメータ名のリストにパースされる
-        # つまり、マクロ関数に渡された時は内部表現であったものがunquoteでパラメータのリストになる。
-        # それで、関数の呼び出し時に渡される引数をパラメータ名で参照できるようになる。
-        IO.puts [blue(), "===> call: #{dump_defn(unquote(name), unquote(args))}", default_color()]
-        result = unquote(content)
-        IO.puts [blue(), "===> result: #{result}", default_color()]
-        result
+        unquote(quote_do(name, args, content))
       end
     end
   end
@@ -51,11 +86,25 @@ defmodule Use.Tracer.Test do
 
   def puts_sum_three(a, b, c), do: IO.inspect(a + b + c)
   def add_list(list), do: Enum.reduce(list, 0, &(&1 + &2))
-  # def add(a, b) when is_number(a) and is_number(b) do
-    # a + b
-  # end
+  def add(a, b) when is_number(a) and is_number(b) do
+    a + b
+  end
+
+  def any_of(a, b) when is_number(a) or is_number(b) do
+    if is_number(a) do
+      a
+    else
+      b
+    end
+  end
+
+  def range(start, final) when is_integer(start) and start > -1 and is_integer(final) and final >= start do
+    start..final
+  end
 end
 
 Use.Tracer.Test.puts_sum_three(1, 2, 3)
 Use.Tracer.Test.add_list([5, 6, 7, 8])
-# Use.Tracer.Test.add(1, 2)
+Use.Tracer.Test.add(1, 4)
+Use.Tracer.Test.any_of(1, [65])
+Use.Tracer.Test.range(1.5, 2)
