@@ -55,4 +55,12 @@ defimpl Enumerable, for: Protocols.Midi do
     frame_count = Enum.reduce(midi, 0, fn _, count -> count + 1 end)
     {:ok, frame_count}
   end
+
+  def member?(%Protocols.Midi{}, %Protocols.Midi.Frame{}) do
+    {:error, __MODULE__}
+  end
+
+  def slice(%Protocols.Midi{}) do
+    {:error, __MODULE__}
+  end
 end
