@@ -64,3 +64,19 @@ defimpl Enumerable, for: Protocols.Midi do
     {:error, __MODULE__}
   end
 end
+
+defimpl Collectable, for: Protocols.Midi do
+  def into(%Protocols.Midi{content: content}) do
+    {
+      content,
+      fn
+        acc, {:cont, frame = %Protocols.Midi.Frame{}} ->
+          acc <> Protocols.Midi.Frame.to_binary(frame)
+        acc, :done ->
+          %Protocols.Midi{content: acc}
+        _, :halt ->
+          :ok
+      end
+    }
+  end
+end
