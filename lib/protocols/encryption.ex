@@ -14,7 +14,7 @@ defprotocol Encryption do
   def rot13(string)
 end
 
-defmodule Protocol.Helper do
+defmodule Protocols.Helper do
   @a_code 97 # 一番小さいコード
   @z_code 122 # 一番大きいコード
   def first_code(), do: @a_code
@@ -34,7 +34,7 @@ defmodule Protocol.Helper do
 end
 
 defimpl Encryption, for: List do
-  import Protocol.Helper, only: [shift: 2]
+  import Protocols.Helper, only: [shift: 2]
 
   def encrypt(string, shift) do
     string
@@ -47,7 +47,7 @@ defimpl Encryption, for: List do
 end
 
 defimpl Encryption, for: BitString do
-  import Protocol.Helper
+  import Protocols.Helper
 
   def encrypt(<<>>, _), do: <<>>
 
