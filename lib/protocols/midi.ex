@@ -118,34 +118,39 @@ defimpl Inspect, for: Protocols.Midi.Frame do
     >>},
     opts
   ) do
-    concat(
-      [
-        nest(
-          concat(
-            [
-              color_doc("#Midi.Header{", :map, opts),
-              break(" "),
-              "Midi format: #{format}",
-              break(" "),
-              "tracks: #{tracks}",
-              break(" "),
-              "timing: #{decode(division)}"
-            ]
-          ),
-          2
-        ),
-        break(""),
-        color("}", :map, opts)
-      ]
+    open = color_doc("#Midi.Header{", :map, opts)
+    close = color_doc("}", :map, opts)
+    separator = color_doc(",", :map, opts)
+    content = [
+      "Midi format": format,
+      tracks: tracks,
+      timing: decode(division)
+    ]
+
+    # 項目間、適切な改行の為container_doc使用
+    container_doc(
+      open,
+      content,
+      close,
+      %Inspect.Opts{},
+      fn {key, value}, opts ->
+        concat(
+          color_doc("#{key}:", :atom, opts),
+          concat(" ", color_doc("#{value}", :atom, opts) # decode(division)がダブルクオートで囲まれないようcolor_doc使用
+          )
+        )
+      end,
+      separator: separator,
+      break: :strict
     )
   end
 
   def inspect(%Protocols.Midi.Frame{
-    type: "MTrk",
-    length: length,
-    data: data
-  },
-  opts
+      type: "MTrk",
+      length: length,
+      data: data
+    },
+    opts
   ) do
     open = color_doc("#Midi.Track{", :map, opts)
     close = color_doc("}", :map, opts)
@@ -161,8 +166,10 @@ defimpl Inspect, for: Protocols.Midi.Frame do
       close,
       %Inspect.Opts{limit: 15},
       fn {key, value}, opts ->
-        key = color("#{key}:", :atom, opts)
-        concat(key, concat(" ", to_doc(value, opts)))
+        concat(
+          color_doc("#{key}:", :atom, opts),
+          concat(" ", to_doc(value, opts))
+        )
       end,
       separator: separator,
       break: :strict
