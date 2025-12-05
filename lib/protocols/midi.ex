@@ -82,19 +82,32 @@ defimpl Collectable, for: Protocols.Midi do
 end
 
 defimpl Inspect, for: Protocols.Midi do
+  import Inspect.Algebra
+
   def inspect(%Protocols.Midi{content: <<>>}, _opts) do
     "#Midi[<<empty>>]"
   end
 
-  def inspect(midi = %Protocols.Midi{}, _opts) do
-    content =
-      Enum.map(midi, fn frame -> inspect frame end)
-      |> Enum.join("\n")
-    "#Midi[\n#{content}\n]"
+  def inspect(midi = %Protocols.Midi{}, opts) do
+    open = color_doc("#Midi[", :map, opts)
+    close = color_doc("]", :map, opts)
+    separator = color_doc(",", :map, opts)
+
+    container_doc(
+      open,
+      Enum.to_list(midi),
+      close,
+      %Inspect.Opts{limit: 4},
+      fn frame, _opts -> Inspect.Protocols.Midi.Frame.inspect(frame, opts) end,
+      separator: separator,
+      break: :strict
+    )
   end
 end
 
 defimpl Inspect, for: Protocols.Midi.Frame do
+  import Inspect.Algebra
+
   def inspect(%Protocols.Midi.Frame{
     type: "MThd",
     length: 6,
@@ -103,9 +116,28 @@ defimpl Inspect, for: Protocols.Midi.Frame do
       tracks::integer-16,
       division::bits-16
     >>},
-    _opts) do
-    beats = decode(division)
-    "#Midi.Header{Midi format: #{format}, tracks: #{tracks}, timing: #{beats}}"
+    opts
+  ) do
+    concat(
+      [
+        nest(
+          concat(
+            [
+              color_doc("#Midi.Header{", :map, opts),
+              break(" "),
+              "Midi format: #{format}",
+              break(" "),
+              "tracks: #{tracks}",
+              break(" "),
+              "timing: #{decode(division)}"
+            ]
+          ),
+          2
+        ),
+        break(""),
+        color("}", :map, opts)
+      ]
+    )
   end
 
   def inspect(%Protocols.Midi.Frame{
@@ -113,8 +145,28 @@ defimpl Inspect, for: Protocols.Midi.Frame do
     length: length,
     data: data
   },
-  _opts) do
-    "#Midi.Track{length: #{length}, data: #{inspect data}}"
+  opts
+  ) do
+    open = color_doc("#Midi.Track{", :map, opts)
+    close = color_doc("}", :map, opts)
+    separator = color_doc(",", :map, opts)
+    content = [
+      length: length,
+      data: data
+    ]
+
+    container_doc(
+      open,
+      content,
+      close,
+      %Inspect.Opts{limit: 15},
+      fn {key, value}, opts ->
+        key = color("#{key}:", :atom, opts)
+        concat(key, concat(" ", to_doc(value, opts)))
+      end,
+      separator: separator,
+      break: :strict
+    )
   end
 
   def decode(<<0::1, beats::15>>) do
